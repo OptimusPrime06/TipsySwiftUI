@@ -11,7 +11,7 @@ import SwiftUI
 struct TipsySwiftUIApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeScreen()
         }
     }
 }
