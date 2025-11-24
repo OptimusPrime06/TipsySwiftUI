@@ -8,19 +8,19 @@
 import SwiftUI
 
 struct HomeScreen: View {
-    
-    private var isSelected: Bool = false
-    enum tipPercentages: String, CaseIterable {
-        case zero = "0%"
-        case ten = "10%"
-        case twenty = "20%"
-    }
-    
-    @State private var totalBill: Double = 0.0
-    @State private var selectedTip: tipPercentages = .twenty
-    @State private var split: Int = 2
-    
-    init() {
+
+    //MARK: - Variables
+    @StateObject private var viewModel: HomeScreenViewModel
+    @FocusState private var isFocused: Bool
+    @State private var viewResult: Bool = false
+
+    //MARK: - Initializers
+    init(viewModel: HomeScreenViewModel = HomeScreenViewModel()) {
+        
+        // ViewModel observation wrapping
+        _viewModel = StateObject(wrappedValue: viewModel)
+        
+        // Segmented Tip Selector appearance using UIKit
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor.appDarkGreen
         UISegmentedControl.appearance().setTitleTextAttributes(
             [.foregroundColor : UIColor.white,
@@ -36,6 +36,7 @@ struct HomeScreen: View {
         )
     }
     
+    //MARK: - UI Body
     var body: some View {
         VStack {
             VStack(alignment: .center,spacing: 12) {
@@ -48,30 +49,29 @@ struct HomeScreen: View {
                     Spacer()
                 }
                 
-                    
                 HStack {
                     Spacer()
                         .frame(maxWidth: .infinity)
-                                        
+                    
                     TextField("Bill amount",
-                              value: $totalBill,
+                              value: $viewModel.totalBill,
                               format: .currency(code: Locale.current.currency?.identifier ?? "USD" )
                     )
                     .frame(minWidth: 100, maxWidth: 180)
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundStyle(.appDarkGreen)
                     .keyboardType(.decimalPad)
+                    .focused($isFocused)
                     .padding(.bottom)
+                    
                     
                     Spacer()
                         .frame(maxWidth: .infinity)
                 }
-  
             }
             .background(.white)
             
             VStack (spacing: 24) {
-                
                 HStack {
                     Text("Select tip")
                         .font(.system(size: 24, weight: .light))
@@ -81,8 +81,8 @@ struct HomeScreen: View {
                 }
                 .padding(.horizontal, 8)
                 
-                Picker("", selection: $selectedTip) {
-                    ForEach(tipPercentages.allCases, id: \.self) {
+                Picker("", selection: $viewModel.selectedTip) {
+                    ForEach(TipPercentages.allCases, id: \.self) {
                         Text($0.rawValue)
                             .padding()
                     }
@@ -103,13 +103,14 @@ struct HomeScreen: View {
                     Spacer()
                         .frame(maxWidth: .infinity)
                     
-                    Text("\(split)")
+                    Text("\(viewModel.split)")
                         .font(.system(size: 32, weight: .semibold))
                         .foregroundStyle(.appDarkGreen)
                         .padding(.horizontal)
                     
-                    Stepper("", value: $split, in: 2...100)
+                    Stepper("", value: $viewModel.split, in: 2...100)
                         .padding(.horizontal)
+                        .shadow(color: .black, radius: 12)
                     
                     Spacer()
                         .frame(maxWidth: .infinity)
@@ -119,9 +120,7 @@ struct HomeScreen: View {
                 Spacer()
                 
                 Button {
-                    
-                    
-                    
+                    viewResult.toggle()
                 } label: {
                     Text("Calculate")
                         .font(.system(size: 26, weight: .medium))
@@ -131,17 +130,38 @@ struct HomeScreen: View {
                         .background(.appDarkGreen)
                         .clipShape(.rect(cornerRadius: 8))
                         .shadow(radius: 8, x: 3, y: 3)
-                        
+                    
                 }
-                                
+                .sheet(isPresented: $viewResult) {
+                    ResultScreen(viewModel: ResultViewModel(billPerPerson: viewModel.GetFinaleBill(),
+                                                            numberOfPeople: viewModel.split,
+                                                            tipPercent: viewModel.selectedTip))
+                }
+                
             }
             .padding(.horizontal, 40)
             .padding(.vertical, 20)
             .background(Color(red: 0.91, green: 0.98, blue: 0.95))
-                
+            
         }
         .safeAreaPadding(.all,8)
         .background(.white)
+        .toolbar {
+            ToolbarItem(placement: .keyboard) {
+                HStack {
+                    Spacer()
+                    
+                    Button {
+                        isFocused = false
+                    } label: {
+                        Text("Done")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+        }
         
     }
     
@@ -149,6 +169,6 @@ struct HomeScreen: View {
 }
 
 #Preview {
-    HomeScreen()
+    HomeScreen(viewModel: HomeScreenViewModel())
 }
 
